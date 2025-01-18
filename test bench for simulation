@@ -1,0 +1,75 @@
+module stimulus;
+
+  wire [1:0] MAIN_SIG, CNTRY_SIG;  
+  reg CAR_ON_CNTRY_RD;              
+  reg CLOCK, CLEAR;                
+
+  // Instantiate signal controller
+  traffic_light SC (
+    MAIN_SIG, CNTRY_SIG, CAR_ON_CNTRY_RD, CLOCK, CLEAR
+  );
+
+  // Monitor signal values and dump waveform
+  initial begin
+    $monitor($time, " Main Sig = %b, Country Sig = %b, Car_on_country_road = %b", MAIN_SIG, CNTRY_SIG, CAR_ON_CNTRY_RD);
+    $dumpfile("controller.vcd"); 
+    $dumpvars(0, stimulus);       // Dump all signals
+  end
+
+  // Clock generation
+  initial begin
+    CLOCK = 1'b0;
+    forever #5 CLOCK = ~CLOCK;  // Toggle clock every 5 time units
+  end
+
+  // Clear signal control
+  initial begin
+    CLEAR = 1'b1;  
+    repeat (5) @(negedge CLOCK);  // Wait for 5 clock cycles
+    CLEAR = 1'b0;  
+  end
+
+  // Stimulus application
+  initial begin
+    // Case 1: No car on country road
+    CAR_ON_CNTRY_RD = 1'b0;
+    repeat (20) @(negedge CLOCK);
+
+    // Case 2: Cars arrives briefly, then leaves
+    CAR_ON_CNTRY_RD = 1'b1;
+    repeat (10) @(negedge CLOCK);
+    CAR_ON_CNTRY_RD = 1'b0;
+    repeat (20) @(negedge CLOCK);
+
+    // Case 3: Car arrives for an extended time
+    CAR_ON_CNTRY_RD = 1'b1;
+    repeat (30) @(negedge CLOCK);
+    CAR_ON_CNTRY_RD = 1'b0;
+    repeat (10) @(negedge CLOCK);
+
+    // Case 4: Reset in the middle of operation
+    CAR_ON_CNTRY_RD = 1'b1;
+    repeat (5) @(negedge CLOCK);
+    CLEAR = 1'b1;
+    repeat (5) @(negedge CLOCK);
+    CLEAR = 1'b0;
+    repeat (20) @(negedge CLOCK);
+
+    // Case 5: Rapid toggling of CAR_ON_CNTRY_RD signal
+    CAR_ON_CNTRY_RD = 1'b1;
+    repeat (5) @(negedge CLOCK);
+    CAR_ON_CNTRY_RD = 1'b0;
+    repeat (5) @(negedge CLOCK);
+    CAR_ON_CNTRY_RD = 1'b1;
+    repeat (5) @(negedge CLOCK);
+    CAR_ON_CNTRY_RD = 1'b0;
+    repeat (20) @(negedge CLOCK);
+
+    // Case 6: Long period without cars
+    CAR_ON_CNTRY_RD = 1'b0;
+    repeat (50) @(negedge CLOCK);
+
+    $finish;  // End simulation
+  end
+
+endmodule
